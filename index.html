@@ -68,7 +68,7 @@
                     <ul class="list-disc ml-5 space-y-1">
                         <li>Thresholds for phototherapy have been updated for 2022.</li>
                         <li>Initial level is based on GA and Neurotoxicity Risk.</li>
-                        <li>This calculator uses a verified matrix and growth function to simulate curves.</li>
+                        <li>This calculator uses the matrix from the Supplemental Tables 1,2, 3, and 4 from the AAP 2022 Guideliness.</li>
                     </ul>
                 </section>
                 <section>
@@ -517,9 +517,6 @@ function getAap2022Thresholds(hol, w, d, neuro, tcb) {
                 const w = parseFloat(b.aogWeeks || 0);
                 const d = parseFloat(b.aogDays || 0);
                 const totalWeeks = w + (d / 7);
-                if (totalWeeks < 38) {
-                    b.neuro = true;
-                }
             }
 
             if (immediate) { 
