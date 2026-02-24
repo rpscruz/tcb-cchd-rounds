@@ -208,57 +208,66 @@
             return Math.max(0, Math.floor(diffHours));
         }
 
+
         function getAap2022Thresholds(hol, w, d, neuro, tcb) {
+
+            if (hol === null || hol === undefined) {
+                return { photo: null, dvet: null, zone: "Unknown" };
+            }
+
             const gestationalAge = parseFloat(w || 0) + (parseFloat(d || 0) / 7);
-            
-            const photoMatrix = {
-                '40+': { noRisk: 21.3, risk: 18.2 },
-                '39':  { noRisk: 20.8, risk: 17.8 },
-                '38':  { noRisk: 20.1, risk: 17.1 },
-                '37':  { noRisk: 19.1, risk: 16.2 },
-                '36':  { noRisk: 17.6, risk: 14.8 },
-                '35':  { noRisk: 15.8, risk: 13.2 }
-            };
 
-            let key = '35';
-            if (gestationalAge >= 40) key = '40+';
-            else if (gestationalAge >= 39) key = '39';
-            else if (gestationalAge >= 38) key = '38';
-            else if (gestationalAge >= 37) key = '37';
-            else if (gestationalAge >= 36) key = '36';
-            
-            const plateaus = photoMatrix[key];
-            const plateau = neuro ? plateaus.risk : plateaus.noRisk;
+            // Clamp HOL safely within dataset bounds
+            const hour = Math.max(0, Math.min(336, Math.floor(hol)));
 
-            let photo;
-            const startRatio = 0.38; 
-            if (hol <= 0) {
-                photo = plateau * startRatio;
-            } else if (hol >= 96) {
-                photo = plateau;
-            } else {
-                const k = 0.045; 
-                const progress = (1 - Math.exp(-k * hol)) / (1 - Math.exp(-k * 96));
-                photo = (plateau * startRatio) + (plateau - (plateau * startRatio)) * progress;
+            // ----------------------------
+            // Determine GA bucket
+            // ----------------------------
+            let gaKey = "35";
+
+            if (gestationalAge >= 40) gaKey = "40";
+            else if (gestationalAge >= 39) gaKey = "39";
+            else if (gestationalAge >= 38) gaKey = "38";
+            else if (gestationalAge >= 37) gaKey = "37";
+            else if (gestationalAge >= 36) gaKey = "36";
+            else gaKey = "35";
+
+            // ----------------------------
+            // Select correct dataset parts
+            // ----------------------------
+            const photoPart = neuro ? "p2" : "p1"; // Phototherapy
+            const dvetPart  = neuro ? "p4" : "p3"; // Escalation
+
+            const photoKey = `${photoPart}_${gaKey}`;
+            const dvetKey  = `${dvetPart}_${gaKey}`;
+
+            const photoArray = RAW_DATA[photoKey];
+            const dvetArray  = RAW_DATA[dvetKey];
+
+            if (!photoArray || !dvetArray) {
+                return { photo: null, dvet: null, zone: "Data Error" };
             }
 
-            const photoFixed = photo.toFixed(1);
-            const dvet = (parseFloat(photoFixed) + 5.5).toFixed(1);
+            const photo = photoArray[hour];
+            const dvet  = dvetArray[hour];
 
-            let zone = "Low Risk Zone";
-            if (tcb) {
+            // ----------------------------
+            // Clinical interpretation
+            // ----------------------------
+            let zone = "Below Treatment Threshold";
+
+            if (tcb && photo !== null) {
                 const val = parseFloat(tcb);
-                const progress = Math.min(hol / 96, 1);
-                const p95 = 5.0 + (17.5 - 5.0) * Math.pow(progress, 0.7);
-                const p75 = 4.2 + (15.2 - 4.2) * Math.pow(progress, 0.75);
-                const p40 = 3.2 + (12.5 - 3.2) * Math.pow(progress, 0.8);
 
-                if (val >= p95) zone = "High Risk Zone";
-                else if (val >= p75) zone = "High Intermediate Risk Zone";
-                else if (val >= p40) zone = "Low Intermediate Risk Zone";
+                if (val >= photo) zone = "Meets Phototherapy Threshold";
+                else if (val >= photo - 2) zone = "Within 2 mg/dL of Threshold";
             }
 
-            return { photo: photoFixed, dvet, zone };
+            return {
+                photo: photo !== null ? photo.toFixed(1) : null,
+                dvet:  dvet  !== null ? dvet.toFixed(1)  : null,
+                zone
+            };
         }
 
         function generateSingleBabyText(b) {
