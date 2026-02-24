@@ -345,6 +345,7 @@
         }
 
 
+
 function getAap2022Thresholds(hol, w, d, neuro, tcb) {
 
     if (hol === null || hol === undefined) {
@@ -511,6 +512,10 @@ function getAap2022Thresholds(hol, w, d, neuro, tcb) {
                 return; 
             }
 
+            if (field === 'tob') {
+                b.tob = value;
+            }
+
             b[field] = value;
 
             if (field === 'aogWeeks' || field === 'aogDays') {
@@ -581,7 +586,33 @@ function getAap2022Thresholds(hol, w, d, neuro, tcb) {
                                     <label class="text-[7px] font-black text-slate-400 uppercase block"><i class="fa-solid fa-baby mr-1"></i>Birth Date/Time</label>
                                     <div class="flex items-center gap-1">
                                         <input id="dob-${b.id}" type="date" value="${b.dob}" oninput="updateBaby(${b.id}, 'dob', this.value)" class="bg-transparent outline-none text-[10px] font-bold w-full">
-                                        <input id="tob-${b.id}" type="time" value="${b.tob}" oninput="updateBaby(${b.id}, 'tob', this.value)" class="bg-transparent outline-none text-[10px] font-bold w-full">
+
+                                        <div class="flex items-center gap-1">
+                                            <select 
+                                                onchange="updateBaby(${b.id}, 'tob', this.value)"
+                                                class="bg-transparent outline-none text-[10px] font-bold">
+
+                                                <option value="">HH</option>
+                                                ${Array.from({length:24}, (_,h) => {
+                                                    const hh = h.toString().padStart(2,'0');
+                                                    const selected = b.tob && b.tob.startsWith(hh) ? 'selected' : '';
+                                                    return `<option value="${hh}:${b.tob ? b.tob.split(':')[1] || '00' : '00'}" ${selected}>${hh}</option>`;
+                                                }).join('')}
+                                            </select>
+
+                                            <span class="text-slate-400 text-[10px]">:</span>
+
+                                            <select
+                                                onchange="updateBaby(${b.id}, 'tob', (b.tob ? b.tob.split(':')[0] : '00') + ':' + this.value)"
+                                                class="bg-transparent outline-none text-[10px] font-bold">
+
+                                                ${['00','15','30','45'].map(m => {
+                                                    const selected = b.tob && b.tob.endsWith(m) ? 'selected' : '';
+                                                    return `<option value="${m}" ${selected}>${m}</option>`;
+                                                }).join('')}
+                                            </select>
+                                        </div>
+
                                     </div>
                                 </div>
                                 <div class="text-right border-l pl-2 border-slate-200 shrink-0">
